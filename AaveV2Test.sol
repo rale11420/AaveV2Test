@@ -114,7 +114,7 @@ contract AaveV2Test {
     //gets full or share of the deposit amount
     function getAmountToWithdraw(address account) public view returns(uint amount) {
         uint plegedTime = donationTimeStamp[account];
-        uint pleged = amountPleged[msg.sender];
+        uint pleged = total*(amountPleged[msg.sender] / (totalAdded));
 
         if (block.timestamp >= plegedTime + timeLock) {
             //if locktime passed user can withdraw total amount
