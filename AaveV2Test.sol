@@ -2,11 +2,11 @@
 pragma solidity ^0.8.13;
 
 import "./Interfaces.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
 
-error InvalidAddress();
+//error InvalidAddress();
 
-contract AaveV2Test {
-
+contract AaveV2Test is Ownable {
     //events
     event Deposit(address indexed lender, uint amount);
     event Withdraw(address indexed lender, uint amount);
@@ -26,6 +26,7 @@ contract AaveV2Test {
 
     uint timeLock;
     uint total;
+    uint startAt;
     //totalAdded used for calculating amount to withdraw
     uint totalAdded;
     mapping(address => uint) public amountPledged;
@@ -44,15 +45,13 @@ contract AaveV2Test {
         //getting aWETH contract
         aWETH = IERC20(0x87b1f4cf9BD63f7BBD3eE1aD04E8F52540349347);  
 
-        timeLock = _timeLock;     
+        timeLock = _timeLock;   
+        startAt = block.timestamp;
     }   
 
     /// @notice Function for adding ETH in Aave lending pool
     function addFunds() external payable {
         require(msg.value > 0, "Invalid pledged amount");
-        if(msg.sender == address(0)){
-            revert InvalidAddress();
-        }
 
         uint amount = msg.value;
         address caller = msg.sender;
@@ -72,9 +71,7 @@ contract AaveV2Test {
     /// @notice Function to withdraw funds from Aave lending pool
     function withdraw() external onlyLenders {
         require(amountPledged[msg.sender] > 0, "Zero funds");
-        if(msg.sender == address(0)){
-            revert InvalidAddress();
-        }
+
         uint amountToWithdraw = getAmountToWithdraw(msg.sender);
 
         WETHGateway.withdrawETH(address(LendingPool), amountToWithdraw, msg.sender);
@@ -100,6 +97,12 @@ contract AaveV2Test {
         WETHGateway.withdrawETH(address(LendingPool), amountToWithdraw, msg.sender);
     
         emit GetReward(msg.sender, amountToWithdraw);
+    }
+    //fix this
+    function withdrawOwner() external onlyOwner {
+        if(block.timestamp >= startAt + timeLock) {
+            WETHGateway.withdrawETH(address(LendingPool), amountToWithdraw, msg.sender);
+        }
     }
 
     //getters
